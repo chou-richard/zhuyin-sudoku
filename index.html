@@ -143,8 +143,9 @@
     .level-button .best { display:block; margin-top:9px; font-size:14px; color:rgba(58,44,65,.75); }
 
     .menu-footer { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:24px; }
-    .audio-credit { margin:14px auto 0; max-width:760px; text-align:center; color:#6b6073; font-size:12px; line-height:1.55; }
-    .audio-credit a { color:#5a4ea2; font-weight:800; }
+    .audio-credit, .analytics-credit { margin:14px auto 0; max-width:760px; text-align:center; color:#6b6073; font-size:12px; line-height:1.55; }
+    .audio-credit a, .analytics-credit a { color:#5a4ea2; font-weight:800; }
+    .analytics-credit { margin-top:7px; }
     .pill-btn, .icon-btn {
       min-height:52px; border:3px solid rgba(78,58,86,.7); background:#fff; color:var(--ink); border-radius:999px; padding:10px 18px; font-weight:900; cursor:pointer; box-shadow:0 5px 0 rgba(75,55,81,.18);
     }
@@ -388,6 +389,7 @@
           <button class="pill-btn" id="howBtn">❔ 玩法</button>
         </div>
         <p class="audio-credit">發音素材：<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/juyin/" target="_blank" rel="noopener">2017 © 教育部，國語注音符號手冊－開放部件</a>，依 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh_TW" target="_blank" rel="noopener">CC BY 4.0</a> 授權使用。</p>
+        <p class="analytics-credit">🔒 公開版使用 <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a> 統計匿名彙總的瀏覽量與效能資料；不使用 Cookie，也不識別個人。</p>
       </section>
     </main>
 
@@ -1527,5 +1529,8 @@
     bindEvents();updateBestLabels();updateAudioButtons();runSelfTests();
   })();
   </script>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"c76704cba45b4635829c47f310bac091","spa":false}'></script>
+  <!-- End Cloudflare Web Analytics -->
 </body>
 </html>
