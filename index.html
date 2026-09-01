@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#fff4d8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -217,12 +217,14 @@
     }
     .key-speaker { position:absolute; top:8px; right:8px; font-size:clamp(13px,1.8vw,18px); line-height:1; filter:grayscale(1); opacity:.7; }
     .key:active { transform:translateY(4px); box-shadow:0 2px 0 rgba(89,62,94,.2); }
-    .key.disabled { opacity:.35; }
+    .key.complete { opacity:.6; background:linear-gradient(#f6f2f7,#ece7ef); }
+    .key.complete .key-speaker { opacity:1; filter:none; }
     .tool-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-top:15px; }
     .tool {
       min-height:58px; border:0; border-radius:16px; background:#e9e4ff; color:#514466; font-weight:950; font-size:clamp(15px,1.8vw,18px); cursor:pointer; box-shadow:0 5px 0 rgba(73,59,92,.17);
     }
     .tool.primary { background:#ffd36b; }
+    .tool.next { grid-column:1/-1; background:#d9f3ec; }
     .tool.active { color:#fff; background:#735fc8; }
     .tool:active { transform:translateY(3px); box-shadow:0 2px 0 rgba(73,59,92,.17); }
     .progress { height:13px; margin-top:16px; background:#eee8f0; border-radius:99px; overflow:hidden; border:2px solid rgba(89,66,99,.2); }
@@ -283,6 +285,7 @@
     .modal-layer { position:fixed; inset:0; z-index:50; display:none; place-items:center; padding:20px; background:rgba(57,44,67,.36); backdrop-filter:blur(7px); }
     .modal-layer.show { display:grid; }
     .modal { width:min(470px,100%); padding:26px; border:4px solid #705779; border-radius:30px; background:#fffdf7; box-shadow:0 26px 80px rgba(47,35,57,.35); text-align:center; animation:pop .28s cubic-bezier(.2,1.4,.4,1); }
+    .modal:focus { outline:none; }
     @keyframes pop { from{transform:scale(.7);opacity:0} }
     .modal h2 { margin:0 0 8px; font-size:clamp(27px,5vw,42px); }
     .modal p { color:var(--muted); line-height:1.6; font-weight:700; }
@@ -323,7 +326,8 @@
       .guide-bubble { display:none; }
       .keypad { gap:7px; }
       .key { min-height:58px; }
-      .tool-grid { grid-template-columns:repeat(4,1fr); }
+      .tool-grid { grid-template-columns:repeat(5,1fr); }
+      .tool.next { grid-column:auto; }
       .tool { min-height:52px; font-size:13px; }
       .match-area { gap:44px; min-height:460px; }
       .picture-card { flex-direction:column; justify-content:center; gap:4px; padding:7px; text-align:center; }
@@ -420,9 +424,10 @@
               <button class="tool" id="clearBtn">⌫ 清除</button>
               <button class="tool primary" id="hintBtn">💡 提示 <span id="hintCount">3</span></button>
               <button class="tool" id="pauseBtn">Ⅱ 暫停</button>
+              <button class="tool next" id="nextPuzzleBtn">⏭ 換一題</button>
             </div>
           </div>
-          <div class="progress" aria-label="完成進度"><i id="progressBar"></i></div>
+          <div class="progress" role="progressbar" aria-label="完成進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="完成 0%"><i id="progressBar"></i></div>
           <div class="progress-label" id="progressLabel">完成 0%</div>
         </aside>
       </section>
@@ -452,7 +457,7 @@
         </div>
         <div class="match-footer">
           <div>
-            <div class="progress" aria-label="連線完成進度"><i id="matchProgressBar"></i></div>
+            <div class="progress" role="progressbar" aria-label="連線完成進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="完成 0%"><i id="matchProgressBar"></i></div>
             <div class="progress-label">每題答對 +100 分，答錯 -10 分</div>
           </div>
           <button class="match-next" id="matchNextBtn" disabled>完成本回合再繼續</button>
@@ -460,8 +465,8 @@
       </section>
     </main>
 
-    <div class="modal-layer" id="messageModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal">
+    <div class="modal-layer" id="messageModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalText">
+      <div class="modal" tabindex="-1">
         <div id="modalIcon" class="trophy" aria-hidden="true">🏆</div>
         <h2 id="modalTitle">完成啦！</h2>
         <p id="modalText"></p>
@@ -645,10 +650,26 @@
     let timerHandle = 0;
     let toastHandle = 0;
     let currentModalKind = "";
+    let modalReturnFocus = null;
+    let modalEscapeAction = null;
+
+    const memoryStorage = new Map();
+    function readStored(key,fallback=""){
+      try {
+        const value=localStorage.getItem(key);
+        if(value!==null)return value;
+      } catch {}
+      return memoryStorage.has(key)?memoryStorage.get(key):fallback;
+    }
+    function writeStored(key,value){
+      const text=String(value);
+      memoryStorage.set(key,text);
+      try { localStorage.setItem(key,text); } catch {}
+    }
 
     const settings = {
-      music: localStorage.getItem("bopo_music") !== "off",
-      sfx: localStorage.getItem("bopo_sfx") !== "off"
+      music: readStored("bopo_music") !== "off",
+      sfx: readStored("bopo_sfx") !== "off"
     };
 
     function baseGrid(level) {
@@ -660,7 +681,7 @@
 
     function createPuzzle(levelKey) {
       const template = LEVELS[levelKey];
-      const storedRound = Number(localStorage.getItem("bopo_round_"+levelKey) || 0);
+      const storedRound = Number(readStored("bopo_round_"+levelKey,"0") || 0);
       const round = Number.isSafeInteger(storedRound) && storedRound >= 0 ? storedRound : 0;
       const questionCount = template.symbolSets.length * template.masks.length;
       const questionIndex = round % questionCount;
@@ -727,6 +748,8 @@
       const {level,values,given,selected,notes,hinted} = state;
       const n = level.size;
       boardEl.style.gridTemplateColumns = `repeat(${n},1fr)`;
+      boardEl.setAttribute("aria-rowcount",String(n));
+      boardEl.setAttribute("aria-colcount",String(n));
       boardEl.replaceChildren();
       const selectedValue = selected ? values[selected.r][selected.c] : "";
       for (let r=0;r<n;r++) for (let c=0;c<n;c++) {
@@ -734,6 +757,8 @@
         cell.type="button"; cell.className="cell";
         cell.dataset.r=r; cell.dataset.c=c;
         cell.setAttribute("role","gridcell");
+        cell.setAttribute("aria-rowindex",String(r+1));
+        cell.setAttribute("aria-colindex",String(c+1));
         cell.setAttribute("aria-label", `第 ${r+1} 列第 ${c+1} 格${values[r][c] ? "，"+values[r][c]+"，點按可聽發音" : "，空格"}`);
         if (given[r][c]) cell.classList.add("given");
         if (hinted[r][c]) cell.classList.add("hinted");
@@ -751,20 +776,35 @@
           cell.append(grid);
         }
         cell.addEventListener("click",()=>selectCell(r,c));
+        cell.addEventListener("keydown",event=>handleBoardKeydown(event,r,c));
         boardEl.append(cell);
       }
+    }
+
+    function handleBoardKeydown(event,r,c){
+      const moves={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+      const move=moves[event.key];
+      if(!move||!state)return;
+      event.preventDefault();
+      const nr=Math.max(0,Math.min(state.level.size-1,r+move[0]));
+      const nc=Math.max(0,Math.min(state.level.size-1,c+move[1]));
+      selectCell(nr,nc);
+      requestAnimationFrame(()=>boardEl.querySelector(`[data-r="${nr}"][data-c="${nc}"]`)?.focus());
     }
 
     function renderKeypad() {
       keypadEl.replaceChildren();
       if (!state) return;
       state.level.symbols.forEach(sym => {
-        const btn=document.createElement("button"); btn.type="button"; btn.className="key"; btn.dataset.zhuyin=sym; btn.setAttribute("aria-label","發音並填入 "+sym);
+        const btn=document.createElement("button"); btn.type="button"; btn.className="key"; btn.dataset.zhuyin=sym;
         const label=document.createElement("span"); label.textContent=sym;
         const speaker=document.createElement("span"); speaker.className="key-speaker"; speaker.setAttribute("aria-hidden","true"); speaker.textContent="🔊";
         btn.append(label,speaker);
         const count=state.values.flat().filter(v=>v===sym).length;
-        if (count>=state.level.size) btn.classList.add("disabled");
+        const complete=count>=state.level.size;
+        btn.setAttribute("aria-label",complete?`播放 ${sym} 發音（已全部填入）`:`播放 ${sym} 發音並填入選取格`);
+        btn.title=complete?`${sym} 已全部填入，仍可點按聽發音`:`播放 ${sym} 發音並填入`;
+        if (complete) btn.classList.add("complete");
         btn.addEventListener("click",()=>{playZhuyin(sym);if(count<state.level.size)inputSymbol(sym);else notify(sym+" 已全部填入，剛剛播放的是它的發音。");});
         keypadEl.append(btn);
       });
@@ -856,7 +896,12 @@
       $("#timer").textContent=formatTime(state.elapsed);
       $("#mistakes").textContent=state.mistakes;
       $("#filled").textContent=`${filled}/${total}`;
-      const pct=Math.round(filled/total*100); $("#progressBar").style.width=pct+"%"; $("#progressLabel").textContent=`完成 ${pct}%`;
+      const pct=Math.round(filled/total*100);
+      const progress=$("#progressBar").parentElement;
+      $("#progressBar").style.width=pct+"%";
+      progress.setAttribute("aria-valuenow",String(pct));
+      progress.setAttribute("aria-valuetext",`完成 ${pct}%`);
+      $("#progressLabel").textContent=`完成 ${pct}%`;
       $("#hintCount").textContent=state.hints;
     }
 
@@ -883,13 +928,31 @@
       ]);
     }
 
+    function advanceQuestion(levelKey){
+      const roundKey="bopo_round_"+levelKey;
+      writeStored(roundKey,Number(readStored(roundKey,"0")||0)+1);
+      startGame(levelKey);
+    }
+
+    function askNextPuzzle(){
+      if(!state)return;
+      const levelKey=state.level.key;
+      const was=state.running;
+      state.running=false;
+      showModal("next-puzzle","⏭","換下一題嗎？","目前填寫的內容不會保留，題號會前進到下一題。",[
+        {label:"取消",action:()=>{closeModal();state.running=was;state.startedAt=performance.now()-state.elapsed*1000;}},
+        {label:"換下一題",primary:true,action:()=>{closeModal();advanceQuestion(levelKey);}}
+      ]);
+    }
+
     function checkComplete() {
       if(!state.values.flat().every(Boolean))return;
       for(let r=0;r<state.level.size;r++)for(let c=0;c<state.level.size;c++)if(state.values[r][c]!==state.solution[r][c])return;
       state.finished=true;state.running=false;state.elapsed=Math.floor((performance.now()-state.startedAt)/1000);stopTimer();
-      const key="bopo_best_"+state.level.key,old=Number(localStorage.getItem(key)||0),isBest=!old||state.elapsed<old;
-      if(isBest)localStorage.setItem(key,String(state.elapsed));
-      localStorage.setItem("bopo_round_"+state.level.key,String(Number(localStorage.getItem("bopo_round_"+state.level.key)||0)+1));
+      const key="bopo_best_"+state.level.key,old=Number(readStored(key,"0")||0),isBest=!old||state.elapsed<old;
+      if(isBest)writeStored(key,state.elapsed);
+      const roundKey="bopo_round_"+state.level.key;
+      writeStored(roundKey,Number(readStored(roundKey,"0")||0)+1);
       updateBestLabels();updateStatus();sfx("win");launchConfetti();
       showModal("complete","🏆","全都答對了！",`${state.level.label}第 ${state.level.questionIndex+1}/${state.level.questionCount} 題完成，時間 ${formatTime(state.elapsed)}，錯誤 ${state.mistakes} 次。${isBest?" 這是新的最佳紀錄！":""}`,[
         {label:"下一題",primary:true,action:()=>{closeModal();startGame(state.level.key);}},
@@ -901,10 +964,33 @@
 
     function showHow() {
       ensureAudio();
-      showModal("how","🧩","遊戲玩法","選一個空格，再按大注音鍵填入。每一排、每一列，以及粗線框起來的小區域，都不能出現重複注音。點下方注音鍵或盤面已有的注音，都可聽到發音。",[{label:"我會了！",primary:true,action:closeModal}]);
+      showModal("how","🧩","遊戲玩法","選一個空格，再按大注音鍵填入。每一排、每一列，以及粗線框起來的小區域，都不能出現重複注音。點下方注音鍵或盤面已有的注音，都可聽到發音；想直接更換題目可按「換一題」。",[{label:"我會了！",primary:true,action:closeModal}]);
     }
-    function showModal(kind,icon,title,text,actions){currentModalKind=kind;$("#modalIcon").textContent=icon;$("#modalTitle").textContent=title;$("#modalText").textContent=text;const area=$("#modalActions");area.replaceChildren();actions.forEach(a=>{const b=document.createElement("button");b.className="pill-btn"+(a.primary?" primary":"");b.textContent=a.label;b.addEventListener("click",a.action);area.append(b);});modal.classList.add("show");}
-    function closeModal(){modal.classList.remove("show");currentModalKind="";}
+    function showModal(kind,icon,title,text,actions){
+      if(!modal.classList.contains("show"))modalReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+      currentModalKind=kind;
+      modalEscapeAction=(actions.find(action=>action.escape)||actions.find(action=>actions.length===1||/取消|繼續|我會了/.test(action.label)))?.action||null;
+      $("#modalIcon").textContent=icon;$("#modalTitle").textContent=title;$("#modalText").textContent=text;
+      const area=$("#modalActions");area.replaceChildren();
+      actions.forEach(a=>{const b=document.createElement("button");b.className="pill-btn"+(a.primary?" primary":"");b.textContent=a.label;b.addEventListener("click",a.action);area.append(b);});
+      modal.classList.add("show");
+      requestAnimationFrame(()=>(area.querySelector("button")||$(".modal",modal)).focus());
+    }
+    function closeModal(){
+      const returnFocus=modalReturnFocus;
+      modal.classList.remove("show");currentModalKind="";modalEscapeAction=null;modalReturnFocus=null;
+      queueMicrotask(()=>{if(returnFocus?.isConnected&&returnFocus.getClientRects().length&&!returnFocus.closest(".screen:not(.active)"))returnFocus.focus();});
+    }
+    function handleModalKeydown(event){
+      if(!modal.classList.contains("show"))return;
+      if(event.key==="Escape"&&modalEscapeAction){event.preventDefault();modalEscapeAction();return;}
+      if(event.key!=="Tab")return;
+      const focusable=$$("button:not([disabled]),a[href],[tabindex]:not([tabindex='-1'])",modal).filter(element=>element.getClientRects().length);
+      if(!focusable.length){event.preventDefault();$(".modal",modal).focus();return;}
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
     function notify(text){clearTimeout(toastHandle);toast.textContent=text;toast.classList.add("show");toastHandle=setTimeout(()=>toast.classList.remove("show"),1800);sfx("tap");}
 
     function launchConfetti(){
@@ -913,7 +999,7 @@
     }
 
     function updateBestLabels(){
-      for(const key of ["easy","medium"]){const best=Number(localStorage.getItem("bopo_best_"+key)||0);$("#"+key+"Best").textContent=best?"最佳紀錄："+formatTime(best):"最佳紀錄：尚未完成";}
+      for(const key of ["easy","medium"]){const best=Number(readStored("bopo_best_"+key,"0")||0);$("#"+key+"Best").textContent=best?"最佳紀錄："+formatTime(best):"最佳紀錄：尚未完成";}
     }
 
     function shuffle(list){
@@ -1053,7 +1139,11 @@
       $("#matchRound").textContent=(matchState.round+1)+"/"+matchState.totalRounds;
       $("#matchScore").textContent=String(matchState.score);
       $("#matchDone").textContent=matchState.completed+"/"+matchState.total;
-      $("#matchProgressBar").style.width=(matchState.completed/matchState.total*100)+"%";
+      const pct=Math.round(matchState.completed/matchState.total*100);
+      const progress=$("#matchProgressBar").parentElement;
+      $("#matchProgressBar").style.width=pct+"%";
+      progress.setAttribute("aria-valuenow",String(pct));
+      progress.setAttribute("aria-valuetext",`完成 ${pct}%`);
       const complete=matchState.matched.size===matchState.items.length;
       const next=$("#matchNextBtn");
       next.disabled=!complete;
@@ -1298,7 +1388,7 @@
         return;
       }
       settings.music=!settings.music;
-      localStorage.setItem("bopo_music",settings.music?"on":"off");
+      writeStored("bopo_music",settings.music?"on":"off");
       if(settings.music)await ensureAudio();else syncMusicLoop(true);
       updateAudioButtons();
       sfx("tap");
@@ -1306,7 +1396,7 @@
     async function toggleSfx(){
       if(settings.sfx)sfx("tap");
       settings.sfx=!settings.sfx;
-      localStorage.setItem("bopo_sfx",settings.sfx?"on":"off");
+      writeStored("bopo_sfx",settings.sfx?"on":"off");
       if(settings.sfx){await ensureAudio();sfx("tap");}
       updateAudioButtons();
     }
@@ -1337,8 +1427,9 @@
       $("#menuSfx").addEventListener("click",toggleSfx);$("#gameSfx").addEventListener("click",toggleSfx);$("#matchSfx").addEventListener("click",toggleSfx);
       $("#howBtn").addEventListener("click",showHow);$("#homeBtn").addEventListener("click",()=>{if(state&&!state.finished){state.running=false;showModal("home","⌂","回到主選單？","目前這一局尚未完成，離開後將不保留進度。",[{label:"繼續遊戲",action:()=>{closeModal();state.running=true;state.startedAt=performance.now()-state.elapsed*1000;}},{label:"回主選單",primary:true,action:goHome}]);}else goHome();});
       $("#matchHomeBtn").addEventListener("click",askMatchHome);$("#matchNextBtn").addEventListener("click",nextMatchRound);
-      $("#restartBtn").addEventListener("click",askRestart);$("#noteBtn").addEventListener("click",toggleNotes);$("#clearBtn").addEventListener("click",clearSelected);$("#hintBtn").addEventListener("click",useHint);$("#pauseBtn").addEventListener("click",togglePause);
-      window.addEventListener("keydown",e=>{if(!state||!gameScreen.classList.contains("active"))return;if(e.key==="Backspace"||e.key==="Delete")clearSelected();else if(e.key.toLowerCase()==="n")toggleNotes();else{const idx=Number(e.key)-1;if(Number.isInteger(idx)&&idx>=0&&idx<state.level.size)inputSymbol(state.level.symbols[idx]);}});
+      $("#restartBtn").addEventListener("click",askRestart);$("#noteBtn").addEventListener("click",toggleNotes);$("#clearBtn").addEventListener("click",clearSelected);$("#hintBtn").addEventListener("click",useHint);$("#pauseBtn").addEventListener("click",togglePause);$("#nextPuzzleBtn").addEventListener("click",askNextPuzzle);
+      modal.addEventListener("keydown",handleModalKeydown);
+      window.addEventListener("keydown",e=>{if(modal.classList.contains("show")||!state||!gameScreen.classList.contains("active"))return;if(e.key==="Backspace"||e.key==="Delete")clearSelected();else if(e.key.toLowerCase()==="n")toggleNotes();else{const idx=Number(e.key)-1;if(Number.isInteger(idx)&&idx>=0&&idx<state.level.size)inputSymbol(state.level.symbols[idx]);}});
       window.addEventListener("resize",()=>requestAnimationFrame(redrawMatchLines));
       window.addEventListener("orientationchange",()=>setTimeout(redrawMatchLines,180));
       document.addEventListener("pointerdown",event=>{
