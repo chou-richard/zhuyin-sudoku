@@ -1,0 +1,10 @@
+{
+  "name": "工研小太陽－一年級國語數學題庫",
+  "short_name": "一年級題庫",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaf0",
+  "theme_color": "#ffb703",
+  "lang": "zh-Hant-TW",
+  "icons": []
+}

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffb703">
+  <meta name="description" content="國小一年級上學期國語與數學線上練習題庫">
+  <title>工研小太陽｜一年級國語數學線上題庫</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">☀️</div>
+    <div>
+      <p class="eyebrow">工研小太陽</p>
+      <h1>一年級國語數學線上題庫</h1>
+    </div>
+    <button id="soundToggle" class="icon-button" type="button" aria-pressed="true" aria-label="關閉按鍵音效">🔊</button>
+  </header>
+
+  <main id="main">
+    <section id="homeView" class="view is-active" aria-labelledby="welcomeTitle">
+      <div class="hero-card">
+        <div>
+          <p class="pill">國小一年級上學期</p>
+          <h2 id="welcomeTitle">今天要挑戰什麼？</h2>
+          <p>選擇科目與單元，題目會自動混合。每題都能立即批改，也可以朗讀題目。</p>
+        </div>
+        <div class="hero-characters" aria-hidden="true">
+          <span>🐿️</span><span>🌟</span><span>🐇</span>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <form id="setupForm" class="panel setup-panel">
+          <div class="panel-heading">
+            <span class="step-badge">1</span>
+            <div><h2>選擇練習內容</h2><p>可以隨時回來更換單元</p></div>
+          </div>
+
+          <fieldset>
+            <legend>科目</legend>
+            <div class="segmented subject-picker">
+              <label><input type="radio" name="subject" value="chinese" checked><span>📖 國語</span></label>
+              <label><input type="radio" name="subject" value="math"><span>🧮 數學</span></label>
+              <label><input type="radio" name="subject" value="mixed"><span>🎯 混合</span></label>
+            </div>
+          </fieldset>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>練習單元</span>
+              <select id="unitSelect" name="unit"></select>
+            </label>
+            <label class="field">
+              <span>難度</span>
+              <select id="levelSelect" name="level">
+                <option value="all">難度混合</option>
+                <option value="1">🌱 基礎</option>
+                <option value="2">🌿 進階</option>
+                <option value="3">🌳 挑戰</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset>
+            <legend>題數</legend>
+            <div class="segmented count-picker">
+              <label><input type="radio" name="count" value="5"><span>5 題</span></label>
+              <label><input type="radio" name="count" value="10" checked><span>10 題</span></label>
+              <label><input type="radio" name="count" value="20"><span>20 題</span></label>
+            </div>
+          </fieldset>
+
+          <button class="primary-button" type="submit">開始練習 <span aria-hidden="true">→</span></button>
+        </form>
+
+        <aside class="panel progress-panel" aria-labelledby="progressTitle">
+          <div class="panel-heading compact">
+            <span class="step-badge mint">★</span>
+            <div><h2 id="progressTitle">我的練習紀錄</h2><p>記錄只保存在這台裝置</p></div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat"><strong id="totalAnswered">0</strong><span>累計作答</span></div>
+            <div class="stat"><strong id="accuracyRate">--</strong><span>答對率</span></div>
+            <div class="stat"><strong id="bestScore">0</strong><span>最佳題數</span></div>
+          </div>
+          <div class="subject-progress">
+            <div><span>國語</span><span id="chineseProgressText">0 / 0</span></div>
+            <progress id="chineseProgress" value="0" max="100"></progress>
+          </div>
+          <div class="subject-progress math-progress">
+            <div><span>數學</span><span id="mathProgressText">0 / 0</span></div>
+            <progress id="mathProgress" value="0" max="100"></progress>
+          </div>
+          <button id="resetProgress" class="text-button" type="button">重新開始記錄</button>
+        </aside>
+      </div>
+
+      <section class="scope-panel" aria-labelledby="scopeTitle">
+        <div class="panel-heading compact">
+          <span class="step-badge purple">📚</span>
+          <div><h2 id="scopeTitle">題庫範圍</h2><p>根據一年級上學期常見課程能力重新編寫</p></div>
+        </div>
+        <div class="scope-grid">
+          <article><h3>📖 國語</h3><p>注音聲符與韻符、拼音與聲調、國字詞語、句子運用、短文閱讀理解。</p></article>
+          <article><h3>🧮 數學</h3><p>數到10、比長短、分與合、順序和多少、數到30、加減法、形狀、整點與半點。</p></article>
+        </div>
+      </section>
+    </section>
+
+    <section id="quizView" class="view" aria-labelledby="questionTitle">
+      <div class="quiz-shell">
+        <div class="quiz-toolbar">
+          <button id="quitQuiz" class="back-button" type="button" aria-label="離開本次練習">← <span>回選單</span></button>
+          <div class="quiz-meta"><span id="subjectTag" class="subject-tag"></span><span id="unitTag"></span></div>
+          <button id="readQuestion" class="read-button" type="button">🔊 朗讀</button>
+        </div>
+        <div class="progress-row">
+          <span id="questionCounter">第 1 題</span>
+          <div class="progress-track"><div id="quizProgressBar"></div></div>
+          <span id="scoreCounter">答對 0 題</span>
+        </div>
+        <article class="question-card">
+          <p id="difficultyLabel" class="difficulty-label"></p>
+          <h2 id="questionTitle"></h2>
+          <p id="questionSupport" class="question-support"></p>
+          <div id="questionVisual" class="question-visual" aria-hidden="true"></div>
+          <div id="answers" class="answers" role="group" aria-label="答案選項"></div>
+          <div class="question-actions">
+            <button id="hintButton" class="secondary-button" type="button">💡 看提示</button>
+            <button id="nextQuestion" class="primary-button small" type="button" disabled>下一題 →</button>
+          </div>
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="resultView" class="view" aria-labelledby="resultTitle">
+      <div class="result-card">
+        <div id="resultEmoji" class="result-emoji" aria-hidden="true">🎉</div>
+        <p class="pill">練習完成</p>
+        <h2 id="resultTitle">做得很棒！</h2>
+        <p id="resultSummary"></p>
+        <div class="result-score"><strong id="resultScore">0</strong><span> / </span><span id="resultTotal">0</span></div>
+        <div id="resultMessage" class="result-message"></div>
+        <div class="result-actions">
+          <button id="retryWrong" class="secondary-button" type="button">重練答錯題</button>
+          <button id="returnHome" class="primary-button" type="button">回首頁</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>工研小太陽專屬練習</span>
+    <span id="bankCount"></span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
